@@ -56,7 +56,7 @@
 /* Logger queue handle */
 static QueueHandle_t log_queue = NULL;
 
-gpio_pin_config_t gpio_config_sw3 = {
+gpio_pin_config_t gpio_config_sw2 = {
 		kGPIO_DigitalInput,
 		0
 };
@@ -76,28 +76,7 @@ static void log_task(void *pvParameters);
  * Code
  ******************************************************************************/
 
-void PORTA_IRQHandler (void){
 
-	PRINTF("Interrupt SW3!!!.\r\n");
-	char log[MAX_LOG_LENGTH + 1];
-	 sprintf(log, "ISR Message to log_task");
-	 xQueueSendFromISR(log_queue, &log, 0);
-
-	NVIC_DisableIRQ(PORTA_IRQn);
-	PORTA->PCR[4] = ((PORTA->PCR[4] &
-	          (~(PORT_PCR_PS_MASK | PORT_PCR_PE_MASK | PORT_PCR_ISF_MASK))) /* Mask bits to zero which are setting */
-	            | PORT_PCR_PS(0x1)                               /* Pull Select: Internal pullup resistor is enabled on the corresponding pin, if the corresponding PE field is set. */
-	            | PORT_PCR_PE(0x1)                          /* Pull Enable: Internal pullup or pulldown resistor is enabled on the corresponding pin, if the pin is configured as a digital input. */
-				| PORT_PCR_ISF_MASK
-				| PORT_PCR_IRQC(0xA)
-	          );
-	PORTA->ISFR = 0x0;
-	NVIC_ClearPendingIRQ(PORTA_IRQn);
-	NVIC_EnableIRQ(PORTA_IRQn);
-
-
-
-}
 
 
 /*!
@@ -109,12 +88,12 @@ int main(void)
     BOARD_BootClockRUN();
     BOARD_InitDebugConsole();
 
-    GPIO_PinInit (GPIOA, 4u, &gpio_config_sw3);
+    GPIO_PinInit (GPIOC, 6u, &gpio_config_sw2);
 
     /* Initialize logger for 10 logs with maximum lenght of one log 20 B */
     log_init(10, MAX_LOG_LENGTH);
-    xTaskCreate(write_task_1, "WRITE_TASK_1", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2, NULL);
-    xTaskCreate(write_task_2, "WRITE_TASK_2", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2, NULL);
+    //xTaskCreate(write_task_1, "WRITE_TASK_1", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2, NULL);
+    //xTaskCreate(write_task_2, "WRITE_TASK_2", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2, NULL);
     vTaskStartScheduler();
     for (;;)
         ;
@@ -188,4 +167,33 @@ static void log_task(void *pvParameters)
         PRINTF("Log %d: %s\r\n", counter, log);
         counter++;
     }
+}
+
+
+void PORTC_IRQHandler (void){
+	BaseType_t xHigherPriorityTaskWoken;
+
+	PRINTF("Interrupt SW2!!!.\r\n");
+	char log[MAX_LOG_LENGTH + 1];
+	 sprintf(log, "ISR Message to log_task");
+	 xQueueSendToBackFromISR(log_queue, &log, &xHigherPriorityTaskWoken);
+
+	NVIC_DisableIRQ(PORTC_IRQn);
+	PORTC->PCR[6] = ((PORTC->PCR[6] &
+	          (~(PORT_PCR_PS_MASK | PORT_PCR_PE_MASK | PORT_PCR_ISF_MASK))) /* Mask bits to zero which are setting */
+	            | PORT_PCR_PS(0x1)                               /* Pull Select: Internal pullup resistor is enabled on the corresponding pin, if the corresponding PE field is set. */
+	            | PORT_PCR_PE(0x1)                          /* Pull Enable: Internal pullup or pulldown resistor is enabled on the corresponding pin, if the pin is configured as a digital input. */
+				| PORT_PCR_ISF_MASK
+				| PORT_PCR_IRQC(0xA)
+	          );
+	PORTC->ISFR = 0x0;
+	NVIC_ClearPendingIRQ(PORTC_IRQn);
+	NVIC_EnableIRQ(PORTC_IRQn);
+
+	if( xHigherPriorityTaskWoken )
+		{
+			taskYIELD ();
+		}
+
+
 }

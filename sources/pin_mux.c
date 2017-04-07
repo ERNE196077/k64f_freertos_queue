@@ -59,7 +59,7 @@ BOARD_InitPins:
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR THE PINS TOOL ***
  */
 
-port_pin_config_t config_pin_sw3 = {
+port_pin_config_t config_pin_sw2 = {
 		kPORT_PullUp,
 		kPORT_FastSlewRate,
 		kPORT_PassiveFilterEnable,
@@ -76,7 +76,7 @@ port_pin_config_t config_pin_sw3 = {
  *
  *END**************************************************************************/
 void BOARD_InitPins(void) {
-	CLOCK_EnableClock(kCLOCK_PortA);                           /* Port A Clock Gate Control: Clock enabled */
+	CLOCK_EnableClock(kCLOCK_PortC);                           /* Port A Clock Gate Control: Clock enabled */
 	CLOCK_EnableClock(kCLOCK_PortB);                           /* Port B Clock Gate Control: Clock enabled */
 
   PORT_SetPinMux(PORTB, PIN16_IDX, kPORT_MuxAlt3);           /* PORTB16 (pin E10) is configured as UART0_RX */
@@ -87,10 +87,10 @@ void BOARD_InitPins(void) {
     );
 
   /* BUTTON SW3 */
-    PORT_SetPinMux(PORTA, 4u, kPORT_MuxAsGpio);
-    PORT_SetPinConfig(PORTA, 4u,&config_pin_sw3);
+    PORT_SetPinMux(PORTC, 6u, kPORT_MuxAsGpio);
+    PORT_SetPinConfig(PORTC, 6u,&config_pin_sw2);
 
-    PORTA->PCR[4] = ((PORTA->PCR[4] &
+    PORTC->PCR[6] = ((PORTC->PCR[6] &
   	  (~(PORT_PCR_PS_MASK | PORT_PCR_PE_MASK | PORT_PCR_ISF_MASK))) /* Mask bits to zero which are setting */
   		| PORT_PCR_PS(0x1)                               /* Pull Select: Internal pullup resistor is enabled on the corresponding pin, if the corresponding PE field is set. */
   		| PORT_PCR_PE(0x1)                          /* Pull Enable: Internal pullup or pulldown resistor is enabled on the corresponding pin, if the pin is configured as a digital input. */
@@ -98,8 +98,8 @@ void BOARD_InitPins(void) {
   		| PORT_PCR_IRQC(0xA)
   	  );
 
-     PORT_SetPinInterruptConfig(PORTA, 4u, kPORT_InterruptFallingEdge);
-     NVIC_EnableIRQ(PORTA_IRQn);
+     PORT_SetPinInterruptConfig(PORTC, 6u, kPORT_InterruptFallingEdge);
+     NVIC_EnableIRQ(PORTC_IRQn);
 
 
 

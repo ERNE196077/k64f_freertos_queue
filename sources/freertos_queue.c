@@ -40,6 +40,7 @@
 /* Freescale includes. */
 #include "fsl_device_registers.h"
 #include "fsl_debug_console.h"
+#include "fsl_gpio.h"
 #include "board.h"
 
 #include "pin_mux.h"
@@ -54,6 +55,12 @@
 ******************************************************************************/
 /* Logger queue handle */
 static QueueHandle_t log_queue = NULL;
+
+gpio_pin_config_t gpio_config_sw3 = {
+		kGPIO_DigitalInput,
+		0
+};
+
 /*******************************************************************************
  * Prototypes
  ******************************************************************************/
@@ -69,14 +76,41 @@ static void log_task(void *pvParameters);
  * Code
  ******************************************************************************/
 
+void PORTA_IRQHandler (void){
+
+	PRINTF("Interrupt SW3!!!.\r\n");
+	char log[MAX_LOG_LENGTH + 1];
+	 sprintf(log, "ISR Message to log_task");
+	 xQueueSendFromISR(log_queue, &log, 0);
+
+	NVIC_DisableIRQ(PORTA_IRQn);
+	PORTA->PCR[4] = ((PORTA->PCR[4] &
+	          (~(PORT_PCR_PS_MASK | PORT_PCR_PE_MASK | PORT_PCR_ISF_MASK))) /* Mask bits to zero which are setting */
+	            | PORT_PCR_PS(0x1)                               /* Pull Select: Internal pullup resistor is enabled on the corresponding pin, if the corresponding PE field is set. */
+	            | PORT_PCR_PE(0x1)                          /* Pull Enable: Internal pullup or pulldown resistor is enabled on the corresponding pin, if the pin is configured as a digital input. */
+				| PORT_PCR_ISF_MASK
+				| PORT_PCR_IRQC(0xA)
+	          );
+	PORTA->ISFR = 0x0;
+	NVIC_ClearPendingIRQ(PORTA_IRQn);
+	NVIC_EnableIRQ(PORTA_IRQn);
+
+
+
+}
+
+
 /*!
  * @brief Main function
  */
 int main(void)
 {
-    BOARD_InitPins();
+     BOARD_InitPins();
     BOARD_BootClockRUN();
     BOARD_InitDebugConsole();
+
+    GPIO_PinInit (GPIOA, 4u, &gpio_config_sw3);
+
     /* Initialize logger for 10 logs with maximum lenght of one log 20 B */
     log_init(10, MAX_LOG_LENGTH);
     xTaskCreate(write_task_1, "WRITE_TASK_1", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2, NULL);
@@ -99,7 +133,7 @@ static void write_task_1(void *pvParameters)
     for (i = 0; i < 5; i++)
     {
         sprintf(log, "Task1 Message %d", (int)i);
-        log_add(log);
+        //log_add(log);
         taskYIELD();
     }
     vTaskSuspend(NULL);
@@ -115,7 +149,7 @@ static void write_task_2(void *pvParameters)
     for (i = 0; i < 5; i++)
     {
         sprintf(log, "Task2 Message %d", (int)i);
-        log_add(log);
+        //log_add(log);
         taskYIELD();
     }
     vTaskSuspend(NULL);
@@ -129,7 +163,7 @@ static void write_task_2(void *pvParameters)
  */
 void log_add(char *log)
 {
-    xQueueSend(log_queue, log, 0);
+	xQueueSend(log_queue, log, 0);
 }
 
 /*!

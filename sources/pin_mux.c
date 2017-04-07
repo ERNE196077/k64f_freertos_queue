@@ -42,6 +42,7 @@ PinsProfile:
 
 #include "fsl_common.h"
 #include "fsl_port.h"
+#include "fsl_gpio.h"
 #include "pin_mux.h"
 
 #define PIN16_IDX                       16u   /*!< Pin number for pin 16 in a port */
@@ -58,6 +59,16 @@ BOARD_InitPins:
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR THE PINS TOOL ***
  */
 
+port_pin_config_t config_pin_sw3 = {
+		kPORT_PullUp,
+		kPORT_FastSlewRate,
+		kPORT_PassiveFilterEnable,
+		kPORT_OpenDrainDisable,
+		kPORT_LowDriveStrength,
+		kPORT_MuxAsGpio,
+		kPORT_UnlockRegister
+};
+
 /*FUNCTION**********************************************************************
  *
  * Function Name : BOARD_InitPins
@@ -65,7 +76,8 @@ BOARD_InitPins:
  *
  *END**************************************************************************/
 void BOARD_InitPins(void) {
-  CLOCK_EnableClock(kCLOCK_PortB);                           /* Port B Clock Gate Control: Clock enabled */
+	CLOCK_EnableClock(kCLOCK_PortA);                           /* Port A Clock Gate Control: Clock enabled */
+	CLOCK_EnableClock(kCLOCK_PortB);                           /* Port B Clock Gate Control: Clock enabled */
 
   PORT_SetPinMux(PORTB, PIN16_IDX, kPORT_MuxAlt3);           /* PORTB16 (pin E10) is configured as UART0_RX */
   PORT_SetPinMux(PORTB, PIN17_IDX, kPORT_MuxAlt3);           /* PORTB17 (pin E9) is configured as UART0_TX */
@@ -73,6 +85,24 @@ void BOARD_InitPins(void) {
     (~(SIM_SOPT5_UART0TXSRC_MASK)))                          /* Mask bits to zero which are setting */
       | SIM_SOPT5_UART0TXSRC(SOPT5_UART0TXSRC_UART_TX)       /* UART 0 transmit data source select: UART0_TX pin */
     );
+
+  /* BUTTON SW3 */
+    PORT_SetPinMux(PORTA, 4u, kPORT_MuxAsGpio);
+    PORT_SetPinConfig(PORTA, 4u,&config_pin_sw3);
+
+    PORTA->PCR[4] = ((PORTA->PCR[4] &
+  	  (~(PORT_PCR_PS_MASK | PORT_PCR_PE_MASK | PORT_PCR_ISF_MASK))) /* Mask bits to zero which are setting */
+  		| PORT_PCR_PS(0x1)                               /* Pull Select: Internal pullup resistor is enabled on the corresponding pin, if the corresponding PE field is set. */
+  		| PORT_PCR_PE(0x1)                          /* Pull Enable: Internal pullup or pulldown resistor is enabled on the corresponding pin, if the pin is configured as a digital input. */
+  		| PORT_PCR_ISF_MASK
+  		| PORT_PCR_IRQC(0xA)
+  	  );
+
+     PORT_SetPinInterruptConfig(PORTA, 4u, kPORT_InterruptFallingEdge);
+     NVIC_EnableIRQ(PORTA_IRQn);
+
+
+
 }
 
 /*******************************************************************************

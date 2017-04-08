@@ -99,6 +99,7 @@ void BOARD_InitPins(void) {
   	  );
 
      PORT_SetPinInterruptConfig(PORTC, 6u, kPORT_InterruptFallingEdge);
+     NVIC_SetPriority(CAN0_Error_IRQn,0x60);
      NVIC_EnableIRQ(PORTC_IRQn);
 
 

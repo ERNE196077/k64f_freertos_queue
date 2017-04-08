@@ -64,12 +64,7 @@ gpio_pin_config_t gpio_config_sw2 = {
 /*******************************************************************************
  * Prototypes
  ******************************************************************************/
-/* Application API */
-static void write_task_1(void *pvParameters);
-static void write_task_2(void *pvParameters);
-
 /* Logger API */
-void log_add(char *log);
 void log_init(uint32_t queue_length, uint32_t max_log_lenght);
 static void log_task(void *pvParameters);
 /*******************************************************************************
@@ -92,59 +87,14 @@ int main(void)
 
     /* Initialize logger for 10 logs with maximum lenght of one log 20 B */
     log_init(10, MAX_LOG_LENGTH);
-    //xTaskCreate(write_task_1, "WRITE_TASK_1", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2, NULL);
-    //xTaskCreate(write_task_2, "WRITE_TASK_2", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2, NULL);
     vTaskStartScheduler();
     for (;;)
         ;
 }
 
 /*******************************************************************************
- * Application functions
- ******************************************************************************/
-/*!
- * @brief write_task_1 function
- */
-static void write_task_1(void *pvParameters)
-{
-    char log[MAX_LOG_LENGTH + 1];
-    uint32_t i = 0;
-    for (i = 0; i < 5; i++)
-    {
-        sprintf(log, "Task1 Message %d", (int)i);
-        //log_add(log);
-        taskYIELD();
-    }
-    vTaskSuspend(NULL);
-}
-
-/*!
- * @brief write_task_2 function
- */
-static void write_task_2(void *pvParameters)
-{
-    char log[MAX_LOG_LENGTH + 1];
-    uint32_t i = 0;
-    for (i = 0; i < 5; i++)
-    {
-        sprintf(log, "Task2 Message %d", (int)i);
-        //log_add(log);
-        taskYIELD();
-    }
-    vTaskSuspend(NULL);
-}
-
-/*******************************************************************************
  * Logger functions
  ******************************************************************************/
-/*!
- * @brief log_add function
- */
-void log_add(char *log)
-{
-	xQueueSend(log_queue, log, 0);
-}
-
 /*!
  * @brief log_init function
  */
@@ -173,9 +123,12 @@ static void log_task(void *pvParameters)
 void PORTC_IRQHandler (void){
 	BaseType_t xHigherPriorityTaskWoken;
 
-	PRINTF("Interrupt SW2!!!.\r\n");
+	uint32_t ulCurrentInterrupt;
+	__asm volatile( "mrs %0, ipsr" : "=r"( ulCurrentInterrupt ) );
+
+	PRINTF("Interrupt SW2!!! %d. \r\n",ulCurrentInterrupt);
 	char log[MAX_LOG_LENGTH + 1];
-	 sprintf(log, "ISR Message to log_task");
+	 sprintf(log, "ISR Msg to log_task");
 	 xQueueSendToBackFromISR(log_queue, &log, &xHigherPriorityTaskWoken);
 
 	NVIC_DisableIRQ(PORTC_IRQn);
